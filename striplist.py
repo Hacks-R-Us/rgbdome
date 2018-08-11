@@ -1,13 +1,5 @@
-# Built-in
-import getopt
-import math
-import socket
-import sys
-import time
-
-# PIP
 import numpy
-import vpython
+import json
 
 # pyDome
 import pyDome.Polyhedral
@@ -16,16 +8,14 @@ import pyDome.GeodesicSphere
 import pyDome.Output
 import pyDome.Truncation
 
-# Socket constants
-SOCK_IP = "192.168.10.5"
-SOCK_START_PORT = 19850
-SOCK_MAX_LEDS = 484
+class Port(list):
 
-# Constants for leds
-sep = 1/60
+    def led_len(self):
+        tot = 0
+        for strip in self:
+            tot += len(strip)
 
-# Set up vpython view
-screen = vpython.canvas(width = 1900, height = 992)
+        return tot
 
 # Constants for pyDome
 radius = numpy.float64(2.8)
@@ -33,6 +23,10 @@ frequency = 4
 polyhedral = pyDome.Polyhedral.Icosahedron()
 vertex_equal_threshold = 0.0000001
 truncation_amount = 0.499999
+
+# Constants for leds
+sep = 1/60
+MAX_LED = 484
 
 # Create the dome info
 symmetry_triangle = pyDome.SymmetryTriangle.ClassOneMethodOneSymmetryTriangle(frequency, polyhedral)
@@ -63,6 +57,7 @@ new_v = [x[2] for x in v_sort]
 
 C_new = []
 
+# Work out the coord list.
 for c in C:
     x = c[0] - 1
     y = c[1] - 1
@@ -79,15 +74,15 @@ C_new.sort(key = lambda x: (x[0], x[1]))
 # And create the LEDs
 led_list = []
 for c in C_new:
-    start = vpython.vector(*V[new_v[c[0]]])
-    end = vpython.vector(*V[new_v[c[1]]])
-    if (end - start).mag < 0.01:
+    strip = []
+    start = numpy.array(V[new_v[c[0]]])
+    end = numpy.array(V[new_v[c[1]]])
+    if numpy.linalg.norm(end - start) < 0.01:
         # Dud cord
-        print("Ignoring {}".format(c))
         continue
 
-    direc = ((end - start) * sep) / (end - start).mag
-    length = round((end - start).mag,2)
+    direc = ((end - start) * sep) / numpy.linalg.norm(end - start)
+    length = round(numpy.linalg.norm(end - start),2)
     if length == 0.71:
         leds = 35
     if length == 0.83:
@@ -102,34 +97,27 @@ for c in C_new:
         leds = 42
 
     for i in range(leds):
-        led = vpython.sphere(pos = start + (direc * (i + 4)), radius = 0.003)
-        led_list.append(led)
+        led = start + (direc * (i + 4))
+        strip.append([round(l, 2) for l in led])
+    led_list.append(strip)
 
-# Create the listening ports
-sock_ports = []
-for i in range(math.ceil(len(led_list)/SOCK_MAX_LEDS)):
-    port = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    port.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    port.setblocking(False)
-    port.bind((SOCK_IP, SOCK_START_PORT + i))
 
-    sock_ports.append(port)
+port_list = []
+strip_list = []
+port = Port()
+for strip in led_list:
+    if (port.led_len() + len(strip)) > MAX_LED:
+        port_list.append(port)
+        port = Port()
+    port.append(strip)
+else:
+    port_list.append(port)
 
-# Do shit with LEDs
-while True:
-    for port_idx, port in enumerate(sock_ports):
-        try:
-            data, addr = port.recvfrom(SOCK_MAX_LEDS*3+43)
-        except BlockingIOError:
-            # No UDP packet
-            continue
-        for i in range(SOCK_MAX_LEDS):
-            
-            try:
-                r = int(data[i*3])
-                g = int(data[(i*3)+1])
-                b = int(data[(i*3)+2])
-            except IndexError:
-                # End of data
-                pass
-            led_list[i + (port_idx * SOCK_MAX_LEDS)].color = vpython.vector(r, g, b)
+tot = 0
+output = []
+for idx, port in enumerate(port_list):
+    output.append({"idx": idx, "Strips": port})
+print(output)
+
+with open("striplist.json", "w") as json_out:
+    json.dump(output, json_out)

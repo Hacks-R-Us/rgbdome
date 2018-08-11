@@ -1,5 +1,6 @@
 # Built-in
 import getopt
+import json
 import math
 import socket
 import sys
@@ -7,7 +8,6 @@ import time
 
 # PIP
 import numpy
-import vpython
 
 # pyDome
 import pyDome.Polyhedral
@@ -25,7 +25,6 @@ SOCK_MAX_LEDS = 484
 sep = 1/60
 
 # Set up vpython view
-screen = vpython.canvas(width = 1900, height = 992)
 
 # Constants for pyDome
 radius = numpy.float64(2.8)
@@ -79,15 +78,15 @@ C_new.sort(key = lambda x: (x[0], x[1]))
 # And create the LEDs
 led_list = []
 for c in C_new:
-    start = vpython.vector(*V[new_v[c[0]]])
-    end = vpython.vector(*V[new_v[c[1]]])
-    if (end - start).mag < 0.01:
+    start = numpy.array([*V[new_v[c[0]]]])
+    end = numpy.array([*V[new_v[c[1]]]])
+    if numpy.linalg.norm(end - start) < 0.01:
         # Dud cord
         print("Ignoring {}".format(c))
         continue
 
-    direc = ((end - start) * sep) / (end - start).mag
-    length = round((end - start).mag,2)
+    direc = ((end - start) * sep) / numpy.linalg.norm(end - start)
+    length = round(numpy.linalg.norm(end - start),2)
     if length == 0.71:
         leds = 35
     if length == 0.83:
@@ -102,34 +101,8 @@ for c in C_new:
         leds = 42
 
     for i in range(leds):
-        led = vpython.sphere(pos = start + (direc * (i + 4)), radius = 0.003)
-        led_list.append(led)
+        led = start + (direc * (i + 4))
+        led_list.append([round(l, 2) for l in led])
 
-# Create the listening ports
-sock_ports = []
-for i in range(math.ceil(len(led_list)/SOCK_MAX_LEDS)):
-    port = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    port.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    port.setblocking(False)
-    port.bind((SOCK_IP, SOCK_START_PORT + i))
-
-    sock_ports.append(port)
-
-# Do shit with LEDs
-while True:
-    for port_idx, port in enumerate(sock_ports):
-        try:
-            data, addr = port.recvfrom(SOCK_MAX_LEDS*3+43)
-        except BlockingIOError:
-            # No UDP packet
-            continue
-        for i in range(SOCK_MAX_LEDS):
-            
-            try:
-                r = int(data[i*3])
-                g = int(data[(i*3)+1])
-                b = int(data[(i*3)+2])
-            except IndexError:
-                # End of data
-                pass
-            led_list[i + (port_idx * SOCK_MAX_LEDS)].color = vpython.vector(r, g, b)
+with open("ledlist.json", "w") as led_file:
+    json.dump(led_list, led_file)

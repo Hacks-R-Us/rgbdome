@@ -2,7 +2,7 @@ import socket
 import time
 
 UDP_IP = "192.168.10.6"
-UDP_PORT = 1337
+UDP_PORT = 10460
 MAX_LED = 484
 
 OFF = bytearray(0 for i in range(MAX_LED*3))
