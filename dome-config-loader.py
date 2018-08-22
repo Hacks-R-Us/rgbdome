@@ -20,13 +20,13 @@ class Led:
 
 class DomeConfig:
 	controllers = [Controller()]
-	led_list = [Led()]
+	led_list = {Led()}
 
 	def __init__(self, config):
 		numControllers = len(config['controllers'])
 		numLeds = len(config['led_list'])
 		self.controllers = [Controller() for x in range(numControllers)]
-		self.led_list = [Led() for x in range(numLeds)]
+		self.led_list = {}
 
 		for controller in range(numControllers):
 			self.controllers[controller].id = config['controllers'][controller]['id']
@@ -35,9 +35,12 @@ class DomeConfig:
 			self.controllers[controller].ip = config['controllers'][controller]['ip']
 
 		for led in range(numLeds):
-			self.led_list[led].x = config['led_list'][led]['x']
-			self.led_list[led].y = config['led_list'][led]['y']
-			self.led_list[led].z = config['led_list'][led]['z']
+			newLed = Led()
+			newLed.x = config['led_list'][led]['x']
+			newLed.y = config['led_list'][led]['y']
+			newLed.z = config['led_list'][led]['z']
+			self.led_list[led] = newLed # TODO: Replace with ipv6
+		print self.led_list
 
 	def process_command(self, command, target):
 		log.debug("%r" % (command,))
