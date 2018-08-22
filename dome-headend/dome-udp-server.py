@@ -1,0 +1,95 @@
+import json
+import logging
+import socket
+
+#############################
+#			CONFIG			#
+#############################
+DOMEJS_HOST = "localhost"
+DOMEJS_PORT = 1444
+
+log = logging.getLogger('dome-udp-server')
+
+FORMAT_CONS = '%(asctime)s %(name)-12s %(levelname)8s\t%(message)s'
+logging.basicConfig(level=logging.DEBUG, format=FORMAT_CONS)
+
+class BigPacketSender():
+    host = None
+    port = None
+    
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        
+    def send(self, packet):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.sendto(packet, (self.host, self.port))
+
+class Controller:
+	id = -1
+	num_leds = -1
+	start_index = -1
+	ip = ""
+
+class Led:
+	x = -1
+	y = -1
+	z = -1
+
+class DomeConfig:
+	numControllers = -1
+	numLeds = -1
+	controllers = [Controller()]
+	led_list = {Led()}
+	domejsSender = None
+
+	def __init__(self, config):
+		self.numControllers = len(config['controllers'])
+		self.numLeds = len(config['led_list'])
+		self.controllers = [Controller() for x in range(numControllers)]
+		self.led_list = {}
+		self.domejsSender = BigPacketSender(DOMEJS_HOST, DOMEJS_PORT)
+
+		for controller in range(numControllers):
+			self.controllers[controller].id = config['controllers'][controller]['id']
+			self.controllers[controller].num_leds = config['controllers'][controller]['num_leds']
+			self.controllers[controller].start_index = config['controllers'][controller]['start_index']
+			self.controllers[controller].ip = config['controllers'][controller]['ip']
+
+		for led in range(numLeds):
+			newLed = Led()
+			newLed.x = config['led_list'][led]['x']
+			newLed.y = config['led_list'][led]['y']
+			newLed.z = config['led_list'][led]['z']
+			self.led_list[led] = newLed # TODO: Replace with ipv6
+
+	def process_command(self, command):
+		log.debug("%r" % (command,))
+		self.domejsSender.send(command)
+		return 0
+
+def udp_server(host='', port=3663):
+    s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    log.info("Listening on udp %s:%s" % (host, port))
+    s.bind((host, port))
+    while True:
+        data = s.recvfrom(10460*3)
+        yield data
+
+def main():
+	config = None
+
+	with open('config.json') as config_file:
+		data = json.load(config_file)
+		config = DomeConfig(data)
+
+	for data in udp_server():
+		#config.process_command(data[0], data[1][0])
+		config.process_command(data[0])
+
+	return 0
+
+if __name__ == "__main__":
+	main()
