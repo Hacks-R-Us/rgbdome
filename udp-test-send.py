@@ -1,9 +1,13 @@
 import socket
 import time
 
-UDP_IP = "192.168.10.6"
-UDP_PORT = 10460
-MAX_LED = 484
+UDP_IP = "localhost"
+UDP_PORT = 3663
+MAX_LED = 30
+
+for led in [[1, 2, 3], [4, 5, 6], [7, 8, 9]]:
+	for rgb in led:
+		print rgb
 
 OFF = bytearray(0 for i in range(MAX_LED*3))
 ON = bytearray(255 for i in range(MAX_LED*3))
@@ -21,7 +25,6 @@ def chase(r=255, g=255, b=255, sleep = 0.01):
 def rainbow(sleep = 0.2):
 	pass
 
-#chase(0,0,255, 0.1)
 while True:
 	sock.sendto(ON, (UDP_IP, UDP_PORT))
 	time.sleep(1)
