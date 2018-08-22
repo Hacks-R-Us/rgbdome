@@ -56,7 +56,7 @@ class DomeConfig:
 			self.controllers[controller].start_index = config['controllers'][controller]['start_index']
 			self.controllers[controller].ip = config['controllers'][controller]['ip']
 
-		self.controllers.sort(key=lambda x: x.id, reverse = False)
+		self.controllers.sort(key=lambda x: x.start_index, reverse = False)
 		for controller in self.controllers:
 			log.debug("%r" % (controller.id,))
 
