@@ -46,17 +46,21 @@ class DomeConfig:
 	def __init__(self, config):
 		self.numControllers = len(config['controllers'])
 		self.numLeds = len(config['led_list'])
-		self.controllers = [Controller() for x in range(numControllers)]
+		self.controllers = [Controller() for x in range(self.numControllers)]
 		self.led_list = {}
 		self.domejsSender = BigPacketSender(DOMEJS_HOST, DOMEJS_PORT)
 
-		for controller in range(numControllers):
+		for controller in range(self.numControllers):
 			self.controllers[controller].id = config['controllers'][controller]['id']
 			self.controllers[controller].num_leds = config['controllers'][controller]['num_leds']
 			self.controllers[controller].start_index = config['controllers'][controller]['start_index']
 			self.controllers[controller].ip = config['controllers'][controller]['ip']
 
-		for led in range(numLeds):
+		self.controllers.sort(key=lambda x: x.id, reverse = False)
+		for controller in self.controllers:
+			log.debug("%r" % (controller.id,))
+
+		for led in range(self.numLeds):
 			newLed = Led()
 			newLed.x = config['led_list'][led]['x']
 			newLed.y = config['led_list'][led]['y']
@@ -64,7 +68,11 @@ class DomeConfig:
 			self.led_list[led] = newLed # TODO: Replace with ipv6
 
 	def process_command(self, command):
-		log.debug("%r" % (command,))
+		log.debug("%r" % ("LEDS:",))
+		for index in range(0, self.numLeds):
+			start = index * 3
+			end = (index * 3) + 3
+			log.debug("%r" % (command[start:end],))
 		self.domejsSender.send(command)
 		return 0
 
