@@ -2,6 +2,9 @@ import json
 import logging
 import socket
 
+from BigPacketSender import BigPacketSender
+from DomeConfig import DomeConfig
+
 #############################
 #			CONFIG			#
 #############################
@@ -10,64 +13,24 @@ DOMEJS_PORT = 1444
 
 CONTROLLER_PORT = 10460
 
+ADDRESSABLE_LED_SERVER_HOST = "5202:2234:1046:0000:0000:0000:0000:0001"
+ADDRESSABLE_LED_SERVER_PORT = 4242
+
 log = logging.getLogger('dome-udp-server')
 
 FORMAT_CONS = '%(asctime)s %(name)-12s %(levelname)8s\t%(message)s'
 logging.basicConfig(level=logging.DEBUG, format=FORMAT_CONS)
 
-class BigPacketSender():
-    host = None
-    port = None
-    
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        
-    def send(self, packet):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.sendto(packet, (self.host, self.port))
-
-class Controller:
-	id = -1
-	num_leds = -1
-	start_index = -1
-	ip = ""
-
-class Led:
-	x = -1
-	y = -1
-	z = -1
-
-class DomeConfig:
-	numControllers = -1
-	numLeds = -1
-	controllers = [Controller()]
-	led_list = {Led()}
+class DomeHeadendConfig(DomeConfig):
 	domejsSender = None
+	addressableLEDSender = None
+	controllerPort = -1
 
-	def __init__(self, config):
-		self.numControllers = len(config['controllers'])
-		self.numLeds = len(config['led_list'])
-		self.controllers = [Controller() for x in range(self.numControllers)]
-		self.led_list = {}
-		self.domejsSender = BigPacketSender(DOMEJS_HOST, DOMEJS_PORT)
-
-		for controller in range(self.numControllers):
-			self.controllers[controller].id = config['controllers'][controller]['id']
-			self.controllers[controller].num_leds = config['controllers'][controller]['num_leds']
-			self.controllers[controller].start_index = config['controllers'][controller]['start_index']
-			self.controllers[controller].ip = config['controllers'][controller]['ip']
-
-		self.controllers.sort(key=lambda x: x.start_index, reverse = False)
-		for controller in self.controllers:
-			log.debug("%r" % (controller.id,))
-
-		for led in range(self.numLeds):
-			newLed = Led()
-			newLed.x = config['led_list'][led]['x']
-			newLed.y = config['led_list'][led]['y']
-			newLed.z = config['led_list'][led]['z']
-			self.led_list[led] = newLed # TODO: Replace with ipv6
+	def __init__(self, config, domejs_host, domejs_port, addressable_led_server_host, addressable_led_server_port, controller_port):
+		super(DomeHeadendConfig, self).__init__(config)
+		self.domejsSender = BigPacketSender(domejs_host, domejs_port)
+		self.addressableLEDSender = BigPacketSender(addressable_led_server_host, addressable_led_server_port)
+		self.controllerPort = controller_port
 
 	def process_command(self, command):
 		log.debug("%r" % ("LEDS:",))
@@ -77,12 +40,10 @@ class DomeConfig:
 			for currentController in range(self.numControllers):
 				start = int(self.controllers[currentController].start_index)
 				end = int(self.controllers[currentController].start_index + self.controllers[currentController].num_leds)
-				#log.debug("%r" % (start,))
-				#log.debug("%r" % (end,))
-				sock.sendto(command[start:end], (self.controllers[currentController].ip, CONTROLLER_PORT))
-				#log.debug("%r" % (command[start:end],))
+				sock.sendto(command[start:end], (self.controllers[currentController].ip, self.controllerPort))
 
-		self.domejsSender.send(command)
+		self.domejsSender.send(command, socket.AF_INET)
+		self.addressableLEDSender.send(bytearray("$") + command, socket.AF_INET6)
 		return 0
 
 def udp_server(host='192.168.100.1', port=3663):
@@ -100,7 +61,7 @@ def main():
 
 	with open('config.json') as config_file:
 		data = json.load(config_file)
-		config = DomeConfig(data)
+		config = DomeHeadendConfig(data, DOMEJS_HOST, DOMEJS_PORT, ADDRESSABLE_LED_SERVER_HOST, ADDRESSABLE_LED_SERVER_PORT, CONTROLLER_PORT)
 
 	for data in udp_server():
 		#config.process_command(data[0], data[1][0])
