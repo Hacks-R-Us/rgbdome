@@ -1,13 +1,9 @@
 import socket
 import time
 
-UDP_IP = "localhost"
+UDP_IP = "192.168.100.1"
 UDP_PORT = 3663
-MAX_LED = 30
-
-for led in [[1, 2, 3], [4, 5, 6], [7, 8, 9]]:
-	for rgb in led:
-		print rgb
+MAX_LED = 10460
 
 OFF = bytearray(0 for i in range(MAX_LED*3))
 ON = bytearray(255 for i in range(MAX_LED*3))

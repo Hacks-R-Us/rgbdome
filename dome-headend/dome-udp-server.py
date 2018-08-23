@@ -8,6 +8,8 @@ import socket
 DOMEJS_HOST = "localhost"
 DOMEJS_PORT = 1444
 
+CONTROLLER_PORT = 10460
+
 log = logging.getLogger('dome-udp-server')
 
 FORMAT_CONS = '%(asctime)s %(name)-12s %(levelname)8s\t%(message)s'
@@ -69,15 +71,22 @@ class DomeConfig:
 
 	def process_command(self, command):
 		log.debug("%r" % ("LEDS:",))
-		for index in range(0, self.numLeds):
-			start = index * 3
-			end = (index * 3) + 3
-			log.debug("%r" % (command[start:end],))
+		if len(command) == (self.numLeds * 3):
+			log.debug("%r" % ("Valid",))
+			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+			for currentController in range(self.numControllers):
+				start = int(self.controllers[currentController].start_index)
+				end = int(self.controllers[currentController].start_index + self.controllers[currentController].num_leds)
+				#log.debug("%r" % (start,))
+				#log.debug("%r" % (end,))
+				sock.sendto(command[start:end], (self.controllers[currentController].ip, CONTROLLER_PORT))
+				#log.debug("%r" % (command[start:end],))
+
 		self.domejsSender.send(command)
 		return 0
 
-def udp_server(host='', port=3663):
-    s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+def udp_server(host='192.168.100.1', port=3663):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     log.info("Listening on udp %s:%s" % (host, port))
