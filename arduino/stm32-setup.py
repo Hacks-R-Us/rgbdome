@@ -1,7 +1,15 @@
+import argparse
 import subprocess
 
-ip = [192, 168, 10, 102]
-mac = [0x92, 0x00, 0x00, 0x00, 0x00, 0x02]
+parser = argparse.ArgumentParser(description="Program a controller.")
+parser.add_argument("id", type=int, help="ID number of controller")
+
+args = parser.parse_args()
+
+con_num = args.id
+
+ip = [192, 168, 10, 100 + con_num]
+mac = [0x92, 0x44, 0x4f, 0x4d, 0x45, con_num]
 
 def_ip = "#define IP {{{},{},{},{}}}".format(*ip)
 def_mac = "#define MAC {{0x{:02x},0x{:02x},0x{:02x},0x{:02x},0x{:02x},0x{:02x}}}".format(*mac)
