@@ -11,4 +11,3 @@ class BigPacketSender():
     def send(self, packet, type):
         sock = socket.socket(type, socket.SOCK_DGRAM)
         sock.sendto(packet, (self.host, self.port))
-        log.debug("%r" % (self.host,))

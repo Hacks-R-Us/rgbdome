@@ -61,9 +61,7 @@ class DomeHeadendConfig(DomeConfig):
 		self.controllerPort = controller_port
 
 	def process_command(self, command):
-		log.debug("%r" % ("LEDS:",))
 		if len(command) == (self.numLeds * 3):
-			log.debug("%r" % ("Valid",))
 			sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 			for currentController in range(self.numControllers):
 				start = int(self.controllers[currentController].start_index)
