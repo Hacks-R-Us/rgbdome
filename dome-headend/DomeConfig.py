@@ -6,23 +6,19 @@ from BigPacketSender import BigPacketSender
 log = logging.getLogger('dome-udp-server')
 
 class Controller:
-	id = -1
-	num_leds = -1
-	start_index = -1
-	ip = ""
+	def __init__(self):
+		self.id = None
+		self.num_leds = None
+		self.start_index = None
+		self.ip = None
 
 class Led:
-	x = -1
-	y = -1
-	z = -1
+	def __init__(self):
+		self.x = None
+		self.y = None
+		self.z = None
 
 class DomeConfig(object):
-	numControllers = -1
-	numLeds = -1
-	controllers = [Controller()]
-	led_list = {Led()}
-	controllerIDsToIps = []
-
 	def __init__(self, config, controllerIDsToIps):
 		self.numControllers = len(config['Controllers'])
 		self.numLeds = len(config['led_list'])

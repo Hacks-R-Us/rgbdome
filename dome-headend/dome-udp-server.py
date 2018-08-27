@@ -50,10 +50,6 @@ FORMAT_CONS = '%(asctime)s %(name)-12s %(levelname)8s\t%(message)s'
 logging.basicConfig(level=logging.DEBUG, format=FORMAT_CONS)
 
 class DomeHeadendConfig(DomeConfig):
-	domejsSender = None
-	addressableLEDSender = None
-	controllerPort = -1
-
 	def __init__(self, config, domejs_host, domejs_port, addressable_led_server_host, addressable_led_server_port, controller_port, controllerIDsToIps):
 		super(DomeHeadendConfig, self).__init__(config, controllerIDsToIps)
 		self.domejsSender = BigPacketSender(domejs_host, domejs_port)
