@@ -1,9 +1,9 @@
 import socket
+import logging
+
+log = logging.getLogger('dome-udp-server')
 
 class BigPacketSender():
-    host = None
-    port = None
-    
     def __init__(self, host, port):
         self.host = host
         self.port = port
