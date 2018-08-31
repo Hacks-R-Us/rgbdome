@@ -3,13 +3,13 @@ import logging
 import socket
 
 from BigPacketSender import BigPacketSender
+from DomeJSSender import DomeJSSender
 from DomeConfig import DomeConfig
 
 #############################
 #			CONFIG			#
 #############################
-DOMEJS_HOST = "localhost"
-DOMEJS_PORT = 1444
+DOMEJS_URL = "http://localhost:8080/"
 
 CONTROLLER_PORT = 10460
 
@@ -28,8 +28,8 @@ class DomeHeadendConfig(DomeConfig):
 
 	def __init__(self, config, domejs_host, domejs_port, addressable_led_server_host, addressable_led_server_port, controller_port):
 		super(DomeHeadendConfig, self).__init__(config)
-		self.domejsSender = BigPacketSender(domejs_host, domejs_port)
-		self.addressableLEDSender = BigPacketSender(addressable_led_server_host, addressable_led_server_port)
+		self.domejsSender = DomeJSSender(DOMEJS_URL)
+		# self.addressableLEDSender = BigPacketSender(addressable_led_server_host, addressable_led_server_port)
 		self.controllerPort = controller_port
 
 	def process_command(self, command):
@@ -42,8 +42,8 @@ class DomeHeadendConfig(DomeConfig):
 				end = int(self.controllers[currentController].start_index + self.controllers[currentController].num_leds)
 				sock.sendto(command[start:end], (self.controllers[currentController].ip, self.controllerPort))
 
-		self.domejsSender.send(command, socket.AF_INET)
-		self.addressableLEDSender.send(bytearray("$") + command, socket.AF_INET6)
+		self.domejsSender.send_command(command)
+		# self.addressableLEDSender.send(bytearray("$") + command, socket.AF_INET6)
 		return 0
 
 def udp_server(host='192.168.100.1', port=3663):
@@ -61,7 +61,7 @@ def main():
 
 	with open('config.json') as config_file:
 		data = json.load(config_file)
-		config = DomeHeadendConfig(data, DOMEJS_HOST, DOMEJS_PORT, ADDRESSABLE_LED_SERVER_HOST, ADDRESSABLE_LED_SERVER_PORT, CONTROLLER_PORT)
+		config = DomeHeadendConfig(data, None, None, ADDRESSABLE_LED_SERVER_HOST, ADDRESSABLE_LED_SERVER_PORT, CONTROLLER_PORT)
 
 	for data in udp_server():
 		#config.process_command(data[0], data[1][0])
